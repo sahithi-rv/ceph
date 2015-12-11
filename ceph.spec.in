@@ -106,6 +106,11 @@ BuildRequires:	boost-devel
 BuildRequires:  cmake
 BuildRequires:	cryptsetup
 BuildRequires:	fuse-devel
+%if 0%{?suse_version}
+BuildRequires:	python-Cython
+%else
+BuildRequires:	Cython
+%endif
 BuildRequires:	gdbm
 BuildRequires:	hdparm
 BuildRequires:	leveldb-devel > 1.2
@@ -599,6 +604,11 @@ export RPM_OPT_FLAGS=`echo $RPM_OPT_FLAGS | sed -e 's/i386/i486/'`
 		%{?_with_tcmalloc} \
 		CFLAGS="$RPM_OPT_FLAGS" CXXFLAGS="$RPM_OPT_FLAGS"
 
+%if %{with lowmem_builder}
+%if 0%{?jobs} > 8
+%define _smp_mflags -j8
+%endif
+%endif
 
 make %{?_smp_mflags}
 
@@ -1141,7 +1151,8 @@ ln -sf %{_libdir}/librbd.so.1 /usr/lib64/qemu/librbd.so.1
 #################################################################################
 %files -n python-rbd
 %defattr(-,root,root,-)
-%{python_sitelib}/rbd.py*
+%{python_sitearch}/rbd.so
+%{python_sitearch}/rbd-*.egg-info
 
 #################################################################################
 %files -n libcephfs1
