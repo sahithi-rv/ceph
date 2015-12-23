@@ -558,7 +558,7 @@ set(common_util_src
   common/util.cc)
 add_library(common_util_obj OBJECT ${common_util_src})
 add_library(mon STATIC ${lib_mon_srcs} $<TARGET_OBJECTS:mon_common_objs>
-  $<TARGET_OBJECTS:os_mon_objs> $<TARGET_OBJECTS:osd_mon_objs>
+  $<TARGET_OBJECTS:kv_objs> $<TARGET_OBJECTS:osd_mon_objs>
   $<TARGET_OBJECTS:common_util_obj>)
 
 set(ceph_mon_srcs
@@ -569,6 +569,24 @@ add_dependencies(ceph-mon erasure_code_plugins)
 target_link_libraries(ceph-mon mon boost_thread common os global ${EXTRALIBS}
   ${CMAKE_DL_LIBS} ${TCMALLOC_LIBS})
 install(TARGETS ceph-mon DESTINATION bin)
+
+#external project rocksdb
+if(${WITH_ROCKSDB})
+include(ExternalProject)
+ExternalProject_Add(rocksdb
+  SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/rocksdb
+  CONFIGURE_COMMAND true
+  BINARY_DIR ${CMAKE_SOURCE_DIR}/src/rocksdb 
+  BUILD_COMMAND EXTRA_CXXFLAGS=-fPIC PORTABLE=1 make VERBOSE=1 static_lib
+  INSTALL_COMMAND true
+)
+
+#For now only building rocksdb statically
+add_library(librocksdb STATIC IMPORTED)
+set_property(TARGET librocksdb PROPERTY IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/rocksdb/librocksdb.a) 
+set_property(TARGET librocksdb PROPERTY INTERFACE_LINK_LIBRARIES z bz2 snappy)
+add_dependencies(librocksdb rocksdb)
+endif(${WITH_ROCKSDB})
 
 # OSD
 if(${HAVE_XFS})
@@ -603,14 +621,13 @@ set(libos_srcs
   ${libkv_srcs}
   ${libos_xfs_srcs})
 
-set(os_mon_files
-  kv/LevelDBStore.cc)
-add_library(os_mon_objs OBJECT ${os_mon_files})
-add_library(os STATIC ${libos_srcs} $<TARGET_OBJECTS:os_mon_objs>)
+add_subdirectory(kv)
+
+add_library(os STATIC ${libos_srcs} $<TARGET_OBJECTS:kv_objs>)
 if(${HAVE_LIBAIO})
   target_link_libraries(os aio)
 endif(${HAVE_LIBAIO})
-target_link_libraries(os leveldb snappy)
+target_link_libraries(os kv leveldb snappy)
 
 set(cls_references_files objclass/class_api.cc)
 add_library(cls_references_objs OBJECT ${cls_references_files})

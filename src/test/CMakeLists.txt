@@ -96,7 +96,6 @@ target_link_libraries(test_keys mon global ${CMAKE_DL_LIBS} ${TCMALLOC_LIBS})
 add_executable(get_command_descriptions
   common/get_command_descriptions.cc
   ${CMAKE_SOURCE_DIR}/src/common/TextTable.cc
-  $<TARGET_OBJECTS:os_mon_objs>
   $<TARGET_OBJECTS:heap_profiler_objs>
   )
 target_link_libraries(get_command_descriptions
@@ -1265,36 +1264,20 @@ target_link_libraries(unittest_snap_mapper osd global ${CMAKE_DL_LIBS}
 set_target_properties(unittest_snap_mapper PROPERTIES COMPILE_FLAGS
   ${UNITTEST_CXX_FLAGS})
 
-#TODO: rocksdb unittests
-if(WITH_SLIBROCKSDB)
-# unittest_rocksdb_option_static
-add_executable(unittest_rocksdb_option_static EXCLUDE_FROM_ALL
-  objectstore/TestRocksdbOptionParse.cc
-  $<TARGET_OBJECTS:heap_profiler_objs>
-  )
-add_test(unittest_rocksdb_option_static unittest_rocksdb_option_static)
-add_dependencies(check unittest_rocksdb_option_static)
-target_link_libraries(unittest_rocksdb_option_static os librocksdb global ${CMAKE_DL_LIBS}
-  ${BLKID_LIBRARIES} ${TCMALLOC_LIBS} ${UNITTEST_LIBS})
-set(UNITTEST_ROCKSDB_STATIC_FLAGS "-std=gnu++11 -Irocksdb/include")
-set_target_properties(unittest_rocksdb_option_static PROPERTIES COMPILE_FLAGS
-  ${UNITTEST_CXX_FLAGS} ${LIBROCKSDB_CFLAGS} ${AM_CXXFLAGS} ${UNITTEST_ROCKSDB_STATIC_FLAGS})
-endif(WITH_SLIBROCKSDB)
-
-if(WITH_DLIBROCKSDB)
+if(${WITH_ROCKSDB})
 # unittest_rocksdb_option
 add_executable(unittest_rocksdb_option EXCLUDE_FROM_ALL
   objectstore/TestRocksdbOptionParse.cc
   $<TARGET_OBJECTS:heap_profiler_objs>
   )
-add_test(unittest_rocksdb_option_static unittest_rocksdb_option)
+add_test(unittest_rocksdb_option unittest_rocksdb_option)
 add_dependencies(check unittest_rocksdb_option)
-target_link_libraries(unittest_rocksdb_option os rocksdb global ${CMAKE_DL_LIBS}
+target_link_libraries(unittest_rocksdb_option global os librocksdb ${CMAKE_DL_LIBS}
   ${BLKID_LIBRARIES} ${TCMALLOC_LIBS} ${UNITTEST_LIBS})
-set(UNITTEST_ROCKSDB_FLAGS "-std=gnu++11")
-set_target_properties(unittest_rocksdb_option_static PROPERTIES COMPILE_FLAGS
-  ${UNITTEST_CXX_FLAGS} ${LIBROCKSDB_CFLAGS} ${AM_CXXFLAGS} ${UNITTEST_ROCKSDB_STATIC_FLAGS})
-endif(WITH_DLIBROCKSDB)
+set(UNITTEST_ROCKSDB_OPTION_FLAGS "${UNITTEST_CXX_FLAGS} -fno-builtin-memcmp -std=gnu++11")
+target_include_directories(unittest_rocksdb_option PUBLIC ${CMAKE_SOURCE_DIR}/src/rocksdb/include)
+set_target_properties(unittest_rocksdb_option PROPERTIES COMPILE_FLAGS ${UNITTEST_ROCKSDB_OPTION_FLAGS})
+endif(${WITH_ROCKSDB})
 
 # unittest_mds_authcap
 add_executable(unittest_mds_authcap EXCLUDE_FROM_ALL
