@@ -520,7 +520,7 @@ endif(${WITH_RADOSGW})
 if(${WITH_RBD})
   set(DENCODER_EXTRALIBS
       ${DENCODER_EXTRALIBS}
-      librbd_replay_types)
+      rbd_replay_types)
 endif(${WITH_RBD})
 target_link_libraries(ceph-dencoder
   librados
@@ -544,6 +544,7 @@ target_link_libraries(ceph-dencoder
   blkid
   udev
   keyutils
+  rbd_replay
   ${EXTRALIBS}
   ${ALLOC_LIBS}
   ${CMAKE_DL_LIBS}
@@ -1019,7 +1020,7 @@ if(${WITH_RBD})
 
   set(librbd_replay_types_srcs
       rbd_replay/ActionTypes.cc)
-  add_library(librbd_replay_types STATIC ${librbd_replay_types_srcs})
+  add_library(rbd_replay_types STATIC ${librbd_replay_types_srcs})
 
   set(librbd_replay_srcs
       rbd_replay/actions.cc
@@ -1028,22 +1029,45 @@ if(${WITH_RBD})
       rbd_replay/PendingIO.cc
       rbd_replay/rbd_loc.cc
       rbd_replay/Replayer.cc)
-  add_library(librbd_replay STATIC ${librbd_replay_srcs})
-  target_link_libraries(librbd_replay PRIVATE librbd_replay_types librbd librados global udev)
+  add_library(rbd_replay STATIC ${librbd_replay_srcs})
+  target_link_libraries(rbd_replay PRIVATE rbd_replay_types librbd librados global udev)
 
-  add_executable(rbd_replay
+  add_executable(rbd-replay
     rbd_replay/rbd-replay.cc
     $<TARGET_OBJECTS:parse_secret_objs>
     )
-  target_link_libraries(rbd_replay librbd librados global librbd_replay keyutils)
-  install(TARGETS rbd_replay DESTINATION bin)
+  target_link_libraries(rbd-replay librbd librados global rbd_replay keyutils)
+  install(TARGETS rbd-replay DESTINATION bin)
 
   set(librbd_replay_ios_srcs
       rbd_replay/ios.cc)
-  add_library(librbd_replay_ios STATIC ${librbd_replay_ios_srcs})
-  target_link_libraries(librbd_replay_ios librbd librados global)
+  add_library(rbd_replay_ios STATIC ${librbd_replay_ios_srcs})
+  target_link_libraries(rbd_replay_ios librbd librados global)
 
-  install(TARGETS librbd_replay librbd_replay_ios DESTINATION lib)
+  if(${WITH_BABELTRACE})
+    set(rbd_replay_prep_srcs
+        rbd_replay/rbd-replay-prep.cc)
+    add_executable(rbd-replay-prep
+      ${rbd_replay_prep_srcs}
+      $<TARGET_OBJECTS:parse_secret_objs>
+      )
+    target_link_libraries(rbd-replay-prep
+      rbd_replay
+      rbd_replay_ios
+      rbd_replay_types
+      librbd
+      librados
+      common
+      keyutils
+      global
+      babeltrace
+      babeltrace-ctf
+      ${Boost_DATE_TIME_LIBRARY}
+      )
+    install(TARGETS rbd-replay-prep DESTINATION bin)
+  endif(${WITH_BABELTRACE})
+
+  install(TARGETS rbd_replay rbd_replay_ios DESTINATION lib)
 
 endif(${WITH_RBD})
 
