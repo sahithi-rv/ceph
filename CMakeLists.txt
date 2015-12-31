@@ -228,6 +228,13 @@ if(WITH_REENTRANT_STRSIGNAL)
     set(HAVE_REENTRANT_STRSIGNAL 1 CACHE INTERNAL "Reentrant strsignal is supported.")
 endif(WITH_REENTRANT_STRSIGNAL)
 
+option(WITH_ROCKSDB "Building rocksdb" ON)
+set(HAVE_LIBROCKSDB ${WITH_ROCKSDB})
+
+# -lbz2 and -lz link into kv
+find_library(ZLIB REQUIRED)
+find_library(BZip2 REQUIRED)
+
 # Now create a useable config.h
 configure_file(
   ${PROJECT_SOURCE_DIR}/src/include/config-h.in.cmake
