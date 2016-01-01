@@ -998,7 +998,7 @@ int MemStore::_truncate(coll_t cid, const ghobject_t& oid, uint64_t size)
     return -ENOENT;
   const ssize_t old_size = o->get_size();
   int r = o->truncate(size);
-  if (o->get_size >= old_size)
+  if (o->get_size() >= old_size)
     used_bytes += (o->get_size() - old_size);
   else
     used_bytes -= (old_size - o->get_size());
